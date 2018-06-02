@@ -1,0 +1,13 @@
+[package]
+name = "rustmusic"
+version = "0.1.0"
+authors = ["Jeremy Burns <j@jaburns.net>"]
+build = "build.rs"
+
+[dependencies]
+midir = "0.5.0"
+sdl2 = "0.31.0"
+imgui = "0.0.18"
+imgui-sdl2 = "0.2.1"
+imgui-opengl-renderer = "0.2.0"
+gl = "0.10.0"
