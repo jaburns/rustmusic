@@ -1,6 +1,7 @@
 use sdl2::audio::{AudioCVT, AudioCallback, AudioDevice, AudioSpecDesired, AudioSpecWAV};
 use sdl2::{AudioSubsystem};
 use std::path::Path;
+use std::sync::mpsc;
 use std::sync::mpsc::{Receiver};
 use std::mem;
 use std::f32::consts::{PI};
@@ -27,7 +28,7 @@ impl AudioCallback for Sound {
     }
 }
 
-trait Producer {
+trait Producer : Send {
     fn write_samples(&mut self, buffer: &mut [f32]);
 }
 
@@ -78,15 +79,38 @@ impl<T: Producer> Producer for StereoSplit<T> {
     }
 }
 
-pub struct DDD {
-    prod: StereoSplit<Sine>
+pub struct Device {
+    receiver: Receiver<Box<Producer>>,
+    producers: Vec<Box<Producer>>,
 }
 
-impl AudioCallback for DDD {
+impl Device {
+    fn new(receiver: Receiver<Box<Producer>>) -> Device {
+        Device {
+            receiver: receiver,
+            producers: Vec::new(),
+        }
+    }
+
+    fn receive_producers(&mut self) {
+        loop {
+            match self.receiver.try_recv() {
+                Ok(p) => self.producers.push(p),
+                Err(_) => break,
+            };
+        }
+    }
+}
+
+impl AudioCallback for Device {
     type Channel = f32;
 
     fn callback(&mut self, out: &mut [f32]) {
-        self.prod.write_samples(out);
+        self.receive_producers();
+
+        if self.producers.len() > 0 {
+            self.producers[0].write_samples(out);
+        }
     }
 }
 
@@ -96,7 +120,7 @@ fn as_floats(v: &[u8]) -> Vec<f32> {
         .collect()
 }
 
-pub fn create_device(audio: AudioSubsystem, rx: Receiver<bool>) -> AudioDevice<DDD> {
+pub fn create_device(audio: AudioSubsystem, rx: Receiver<bool>) -> AudioDevice<Device> {
     let desired_spec = AudioSpecDesired {
         freq: Some(44_100),
         channels: Some(2),
@@ -105,6 +129,7 @@ pub fn create_device(audio: AudioSubsystem, rx: Receiver<bool>) -> AudioDevice<D
 
     let device = audio
         .open_playback(None, &desired_spec, |spec| {
+            /*
             let wav = AudioSpecWAV::load_wav(Path::new("./kick.wav"))
                 .expect("Could not load test WAV file");
 
@@ -118,12 +143,12 @@ pub fn create_device(audio: AudioSubsystem, rx: Receiver<bool>) -> AudioDevice<D
             ).expect("Could not convert WAV file");
 
             let data_bytes: Vec<u8> = cvt.convert(wav.buffer().to_vec());
+            */
 
-            let mut stereo = StereoSplit::<Sine>::new(Sine::new(44_100, 440f32));
-
-            DDD {
-                prod: stereo
-            }
+            let (producer_tx, producer_rx) = mpsc::channel::<Box<Producer>>();
+            let result = Device::new(producer_rx);
+            producer_tx.send(Box::new(StereoSplit::new(Sine::new(44_100, 440f32)))).unwrap();
+            result
 
         //  Sound {
         //      rx: rx,

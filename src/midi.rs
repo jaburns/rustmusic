@@ -9,6 +9,8 @@ pub fn listen_to_input(tx: Sender<bool>) -> Option<MidiInputConnection<()>> {
         println!("{}: {}", i, midi_in.port_name(i).unwrap());
     }
 
+    return None;
+
     if midi_in.port_count() > 0 {
         Some(
             midi_in
