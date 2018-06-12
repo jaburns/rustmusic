@@ -1,7 +1,7 @@
 use midir::{Ignore, MidiInput, MidiInputConnection};
 use std::sync::mpsc::Sender;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum MidiMessageKind {
     KeyPress,
     KeyRelease,
@@ -32,7 +32,8 @@ pub fn listen_to_input(sender: Sender<MidiMessage>) -> Option<MidiInputConnectio
                 },
                 key: message[1],
                 velocity: message[2],
-            });
+            })
+            .unwrap();
         }
     };
 
