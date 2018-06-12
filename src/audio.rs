@@ -1,5 +1,6 @@
+use core;
 use core::ReceivesAudioSpec;
-use dsp::{Producer, WAVProducer, Sine, StereoSplit};
+use dsp::{Producer, Sine, StereoSplit, WAVProducer};
 use midi::{MidiMessage, MidiMessageKind};
 use sdl2::audio::{AudioCallback, AudioSpec};
 use std::path::Path;
@@ -48,20 +49,18 @@ impl AudioCallback for Device {
         match self.midi_receiver.try_recv() {
             Ok(MidiMessage { kind, key, .. }) => {
                 if kind == MidiMessageKind::KeyPress {
-                    self.producers.push(Box::new(StereoSplit::new(Sine::new(44_100, 440f32))));
+                    self.producers
+                        .push(Box::new(StereoSplit::new(Sine::new(44_100, 440f32))));
                 }
             }
             Err(_) => {}
         }
 
-        let mut mixing_buffer = vec![0f32; out.len()];
-
-        for i in 0..out.len() {
-            out[i] = 0f32;
-        }
+        out.clone_from_slice(&core::ZERO_BUFFER);
+        let mut mixing_buffer = [0f32; core::SAMPLE_BUFFER_SIZE];
 
         for producer in self.producers.iter_mut() {
-            producer.write_samples(mixing_buffer.as_mut_slice());
+            producer.write_samples(&mut mixing_buffer);
 
             for i in 0..out.len() {
                 out[i] += mixing_buffer[i];

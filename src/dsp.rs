@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 use std::mem;
 use std::path::Path;
 
-pub trait Producer : Send {
+pub trait Producer: Send {
     fn write_samples(&mut self, buffer: &mut [f32]);
 }
 

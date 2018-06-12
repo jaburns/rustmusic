@@ -24,16 +24,17 @@ pub fn listen_to_input(sender: Sender<MidiMessage>) -> Option<MidiInputConnectio
 
     let on_message = move |_: u64, message: &[u8], _: &mut ()| {
         if message[0] == 152 {
-            sender.send(MidiMessage {
-                kind: if message[2] == 0 {
-                    MidiMessageKind::KeyPress
-                } else {
-                    MidiMessageKind::KeyRelease
-                },
-                key: message[1],
-                velocity: message[2],
-            })
-            .unwrap();
+            sender
+                .send(MidiMessage {
+                    kind: if message[2] == 0 {
+                        MidiMessageKind::KeyPress
+                    } else {
+                        MidiMessageKind::KeyRelease
+                    },
+                    key: message[1],
+                    velocity: message[2],
+                })
+                .unwrap();
         }
     };
 

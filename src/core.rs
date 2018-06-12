@@ -7,6 +7,13 @@ use sdl2;
 use sdl2::audio::{AudioCallback, AudioSpec, AudioSpecDesired};
 use std;
 
+pub const SAMPLE_FREQUENCY: i32 = 44_100;
+pub const SAMPLE_COUNT: usize = 256;
+pub const CHANNEL_COUNT: usize = 2;
+pub const SAMPLE_BUFFER_SIZE: usize = SAMPLE_COUNT * CHANNEL_COUNT;
+
+pub static ZERO_BUFFER: [f32; SAMPLE_BUFFER_SIZE] = [0f32; SAMPLE_BUFFER_SIZE];
+
 pub trait ReceivesAudioSpec {
     fn receive_spec(&mut self, spec: AudioSpec);
 }
@@ -22,7 +29,7 @@ where
 
     let audio = sdl_context.audio().unwrap();
     let desired_spec = AudioSpecDesired {
-        freq: Some(44_100),
+        freq: Some(SAMPLE_FREQUENCY),
         channels: Some(2),
         samples: Some(256),
     };
