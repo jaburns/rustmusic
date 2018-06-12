@@ -1,16 +1,46 @@
-use std;
 use gl;
 use imgui;
-use imgui_sdl2;
-use imgui_opengl_renderer;
 use imgui::*;
+use imgui_opengl_renderer;
+use imgui_sdl2;
 use sdl2;
-use sdl2::{EventPump, VideoSubsystem};
+use sdl2::audio::{AudioCallback, AudioSpec, AudioSpecDesired};
+use std;
 
-pub fn run<F>(video: VideoSubsystem, event_pump: &mut EventPump, draw_ui: F)
+pub trait ReceivesAudioSpec {
+    fn receive_spec(&mut self, spec: AudioSpec);
+}
+
+pub fn run<F, S, CB>(mut audio_cb: CB, mut gui_state: S, gui_cb: F)
 where
-    F: Fn(&Ui),
+    F: Fn(&Ui, &mut S),
+    CB: AudioCallback + ReceivesAudioSpec,
 {
+    let sdl_context = sdl2::init().unwrap();
+
+    // Init audio
+
+    let audio = sdl_context.audio().unwrap();
+    let desired_spec = AudioSpecDesired {
+        freq: Some(44_100),
+        channels: Some(2),
+        samples: Some(256),
+    };
+
+    let device = audio
+        .open_playback(None, &desired_spec, |spec| {
+            audio_cb.receive_spec(spec);
+            audio_cb
+        })
+        .unwrap();
+
+    device.resume();
+
+    // Init video
+
+    let video = sdl_context.video().unwrap();
+    let mut event_pump = sdl_context.event_pump().unwrap();
+
     let gl_attr = video.gl_attr();
     gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
     gl_attr.set_context_version(3, 0);
@@ -36,6 +66,8 @@ where
     let renderer =
         imgui_opengl_renderer::Renderer::new(&mut imgui, |s| video.gl_get_proc_address(s) as _);
 
+    // Run GUI thread
+
     loop {
         use sdl2::event::Event;
 
@@ -47,7 +79,7 @@ where
         }
 
         let ui = imgui_sdl2.frame(&window, &mut imgui, &event_pump);
-        draw_ui(&ui);
+        gui_cb(&ui, &mut gui_state);
 
         unsafe {
             gl::ClearColor(0.2, 0.2, 0.2, 1.0);
