@@ -27,9 +27,9 @@ pub fn listen_to_input(sender: Sender<MidiMessage>) -> Option<MidiInputConnectio
             sender
                 .send(MidiMessage {
                     kind: if message[2] == 0 {
-                        MidiMessageKind::KeyPress
-                    } else {
                         MidiMessageKind::KeyRelease
+                    } else {
+                        MidiMessageKind::KeyPress
                     },
                     key: message[1],
                     velocity: message[2],

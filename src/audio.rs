@@ -15,6 +15,11 @@ pub struct Device {
     producers: Vec<Box<Producer>>,
 }
 
+fn freq_for_key(key: u8) -> f32 {
+    let octave = ((key as f32) - 57f32) / 12f32;
+    440f32 * 2f32.powf(octave)
+}
+
 impl Device {
     pub fn new(midi_receiver: Receiver<MidiMessage>, gui_receiver: Receiver<GUIEvent>) -> Device {
         Device {
@@ -50,7 +55,7 @@ impl AudioCallback for Device {
             Ok(MidiMessage { kind, key, .. }) => {
                 if kind == MidiMessageKind::KeyPress {
                     self.producers
-                        .push(Box::new(StereoSplit::new(Sine::new(44_100, 440f32))));
+                        .push(Box::new(StereoSplit::new(Sine::new(44_100, freq_for_key(key)))));
                 }
             }
             Err(_) => {}

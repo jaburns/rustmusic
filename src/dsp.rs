@@ -23,6 +23,8 @@ impl Sine {
 
 impl Producer for Sine {
     fn write_samples(&mut self, buffer: &mut [f32]) {
+        if self.offset > 5000f32 { return; }
+
         for i in 0..buffer.len() {
             let t = self.offset + (i as f32);
             buffer[i] = f32::sin(2f32 * PI * self.freq_over_sample_freq * t);
